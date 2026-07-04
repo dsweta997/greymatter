@@ -1,0 +1,18 @@
+# Gray Matter — pinned dependencies
+# Security note: versions below are floored to patched releases. See SAFETY.md.
+
+# --- Data ingestion (Phase 1) ---
+pypdf>=6.13.0          # CVE-2026-54530 infinite-loop-in-text-extraction fix landed in 6.13.0; avoid PyPDF2 (abandoned)
+defusedxml>=0.7.1      # drop-in XML parser; closes XXE + billion-laughs on NHS XML
+datasets>=3.0.0        # MedQuAD pull from Hugging Face
+pyyaml>=6.0            # config.yaml loader
+requests>=2.32.0       # OpenStax/NHS one-time downloads
+tqdm>=4.66.0
+
+# --- Embeddings / vector store (Phase 2, floored now for CVE hygiene) ---
+transformers>=5.3.0    # CVE-2026-4372 config-injection RCE patched in 5.3.0
+sentence-transformers>=3.0.0
+qdrant-client>=1.11.0
+langchain-text-splitters>=0.3.0
+
+# NOTE: never pass trust_remote_code=True to any datasets/transformers call in this project.

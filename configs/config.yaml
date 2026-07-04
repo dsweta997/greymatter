@@ -1,0 +1,81 @@
+# Gray Matter — central config. Nothing hardcoded elsewhere.
+
+paths:
+  corpus_raw: "corpus/raw"          # one JSON per document (gitignored)
+  corpus_eval: "corpus/eval"
+  source_files: "corpus/source_files"
+
+ingest:
+  min_doc_chars: 400                 # drop docs shorter than this after cleaning
+  openstax_chunk_chars: 1000         # target size per OpenStax chunk (~2-3 paragraphs)
+
+security:
+  trust_remote_code: false           # HARD RULE — never flip this on
+  strip_html_regex: "<[^>]+>"
+  # Licenses whose terms permit chunk-and-transform reuse. Anything with -ND is REJECTED.
+  accepted_license_slugs: ["cc0", "publicdomain", "by", "by-sa", "by-nc", "by-nc-sa"]
+  rejected_license_slugs: ["by-nd", "by-nc-nd", "nd"]
+
+sources:
+
+  # -- OpenStax: a LIST of first-party PDFs. Drop each PDF in corpus/source_files/ --
+  # Download links live on each book's page: https://openstax.org/details/books/<slug>
+  openstax_books:
+    - name: "openstax_ap2e"
+      enabled: true
+      title: "Anatomy and Physiology 2e"
+      license: "CC BY-NC-SA 4.0"
+      attribution: "Anatomy and Physiology 2e, OpenStax, CC BY-NC-SA 4.0"
+      local_pdf: "corpus/source_files/anatomy_and_physiology_2e_WEB.pdf"
+    - name: "openstax_microbiology"
+      enabled: true
+      title: "Microbiology"
+      license: "CC BY 4.0"           # cleanest license of the set
+      attribution: "Microbiology, OpenStax, CC BY 4.0"
+      local_pdf: "corpus/source_files/microbiology_WEB.pdf"
+    - name: "openstax_biology2e"
+      enabled: true
+      title: "Biology 2e"
+      license: "CC BY 4.0"
+      attribution: "Biology 2e, OpenStax, CC BY 4.0"
+      local_pdf: "corpus/source_files/Biology_2e_WEB.pdf"
+    - name: "openstax_fundamentals_nursing"
+      enabled: true
+      title: "Fundamentals of Nursing"
+      license: "CC BY-NC-SA 4.0"
+      attribution: "Fundamentals of Nursing, OpenStax, CC BY-NC-SA 4.0"
+      local_pdf: "corpus/source_files/Fundamentals_of_Nursing_WEB.pdf"
+
+  medquad:
+    enabled: true
+    name: "medquad"
+    hf_repo: "lavita/MedQuAD"         # license-scrubbed mirror (ADAM/ASHP removed). Do NOT swap for an unlicensed clone.
+    revision: "84ea67f83cec9692ad254eaa02c9731b24ecfe4c"  # pinned main @ 2026-07
+    license: "NIH public-domain-derived (see lavita/MedQuAD card)"
+    attribution: "MedQuAD (Ben Abacha & Demner-Fushman, 2019), via lavita/MedQuAD"
+    keep_question_prefixes: ["what is", "what are", "how does", "how do", "what causes", "anatomy of", "what happens"]
+    drop_question_keywords: ["dose", "dosage", "how much", "treatment for", "should i take", "side effects of taking"]
+
+  # -- PubMed Central Open Access subset, via the sanctioned E-utilities API --
+  # Fills clinical-topic gaps. License is checked PER ARTICLE; -ND is dropped.
+  pmc:
+    enabled: false                   # opt-in; set an email (NCBI etiquette) then enable
+    name: "pmc_oa"
+    email: ""                        # REQUIRED by NCBI usage policy — your contact email
+    api_key_env: "NCBI_API_KEY"      # optional; raises 3 -> 10 req/s if set in .env
+    retmax_per_query: 20             # articles per topic query
+    request_delay_s: 0.4             # >=0.34s (3 rps) without key; safe default
+    queries:                         # topic-targeted to clinical gaps
+      - "myocardial infarction pathophysiology review"
+      - "diabetes mellitus type 2 pathophysiology review"
+      - "asthma pathophysiology mechanism review"
+      - "chronic kidney disease pathophysiology review"
+
+  # -- LibreTexts Medicine: URL-list ingest under a 5s crawl-delay (robots-compliant) --
+  libretexts:
+    enabled: false                   # opt-in; add specific page URLs, verify each page's license
+    name: "libretexts_med"
+    license: "CC BY-NC-SA 4.0"       # LibreTexts default; CONFIRM per page footer
+    attribution: "LibreTexts Medicine, licensed CC BY-NC-SA 4.0"
+    crawl_delay_s: 5                 # required by med.libretexts.org/robots.txt
+    urls: []

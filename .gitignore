@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# Large / working data — Parquet is the committed form instead.
+# (1.3GB source PDFs; 24,922 working JSONs -> corpus/corpus.parquet;
+#  editable eval JSONL -> corpus/eval/*.parquet)
+corpus/source_files/
+corpus/raw/
+corpus/eval/*.jsonl
+corpus/*.log
+corpus/*.txt
+qdrant_storage/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# HF datasets cache
+.cache/
