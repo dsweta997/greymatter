@@ -13,6 +13,9 @@ tqdm>=4.66.0
 transformers>=5.3.0    # CVE-2026-4372 config-injection RCE patched in 5.3.0
 sentence-transformers>=3.0.0
 qdrant-client>=1.11.0
-langchain-text-splitters>=0.3.0
+torch>=2.2.0           # imported directly for device (cuda/cpu) selection
+pandas>=2.0            # read corpus.parquet during indexing
+pyarrow>=14.0          # parquet engine for pandas
+langchain-text-splitters>=0.3.0  # available for future re-chunking; corpus currently indexed as-is
 
 # NOTE: never pass trust_remote_code=True to any datasets/transformers call in this project.

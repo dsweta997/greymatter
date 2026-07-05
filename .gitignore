@@ -1,6 +1,9 @@
 # Secrets
 .env
 
+# Documentation (local only, not committed)
+markdown/
+
 # Large / working data — Parquet is the committed form instead.
 # (1.3GB source PDFs; 24,922 working JSONs -> corpus/corpus.parquet;
 #  editable eval JSONL -> corpus/eval/*.parquet)
@@ -9,6 +12,8 @@ corpus/raw/
 corpus/eval/*.jsonl
 corpus/*.log
 corpus/*.txt
+# derived embedding caches, if ever created (~38MB)
+corpus/*.npy
 qdrant_storage/
 
 # Python
@@ -16,6 +21,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+# Jupyter autosave artifacts
+.ipynb_checkpoints/
 
 # HF datasets cache
 .cache/

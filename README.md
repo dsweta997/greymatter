@@ -16,8 +16,12 @@ Gray's Anatomy plates.
 - **Retrieval eval set**: 100 stratified, corpus-grounded questions → `corpus/eval/eval_set.parquet`
 - **Guardrail set**: 100 labeled questions (educational / personal-advice / crisis) → `corpus/eval/guardrail_set.parquet`
 
+**Phase 2 in progress** — dense retrieval:
+- **Vector index**: all 24,922 chunks embedded with `bge-small-en-v1.5` (384-dim) and indexed into embedded Qdrant (cosine). Built in ~90s on GPU.
+- Next: retriever module + baseline hit-rate on the eval set.
+
 ## Repo layout
 
-- `data_pipeline/` — corpus ingestion + Parquet export
+- `data_pipeline/` — corpus ingestion + Parquet export; embedding + vector indexing
 - `evaluation/` — eval-set and guardrail-set builders
-- `configs/config.yaml` — all settings (sources, licenses, chunking, license gate)
+- `configs/config.yaml` — all settings (sources, licenses, chunking, embedding, vector store)

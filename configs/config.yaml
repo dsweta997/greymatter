@@ -9,6 +9,22 @@ ingest:
   min_doc_chars: 400                 # drop docs shorter than this after cleaning
   openstax_chunk_chars: 1000         # target size per OpenStax chunk (~2-3 paragraphs)
 
+# --- Phase 2: dense retrieval ---
+embedding:
+  model: "BAAI/bge-small-en-v1.5"    # 384-dim bi-encoder, strong + tiny (~133MB)
+  query_prefix: "Represent this sentence for searching relevant passages: "
+  batch_size: 128                    # doubled from 64; still safe on 4060, ~10% speedup in wall time
+  normalize: true                    # unit vectors -> cosine == dot product
+
+vector_store:
+  path: "qdrant_storage"             # embedded Qdrant: a local folder, no server
+  collection: "greymatter"
+  distance: "Cosine"                 # or "Dot" for 5% more speed (identical ranking with normalized vecs)
+  hnsw:
+    m: 16                            # neighbors per node; good default for 25k vectors
+    ef_construct: 200                # higher = better index, slower build; diminishing past 200
+    ef_search: 100                   # lower = faster query with ~1% recall loss (negligible)
+
 security:
   trust_remote_code: false           # HARD RULE — never flip this on
   strip_html_regex: "<[^>]+>"
