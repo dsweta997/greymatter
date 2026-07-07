@@ -18,10 +18,12 @@ Gray's Anatomy plates.
 
 **Phase 2 in progress** — dense retrieval:
 - **Vector index**: all 24,922 chunks embedded with `bge-small-en-v1.5` (384-dim) and indexed into embedded Qdrant (cosine). Built in ~90s on GPU.
-- Next: retriever module + baseline hit-rate on the eval set.
+- **Retriever**: `rag/retriever.py` — query → top-k chunks by cosine.
+- Next: baseline hit-rate on the eval set, then the generator + CLI.
 
 ## Repo layout
 
-- `data_pipeline/` — corpus ingestion + Parquet export; embedding + vector indexing
-- `evaluation/` — eval-set and guardrail-set builders
+- `data_pipeline/` — numbered pipeline scripts, in run order: ingest → build eval set → build guardrail set → export Parquet → embed + index
+- `rag/` — query-time system (retriever; generator + pipeline to come)
+- `common/` — shared helpers (config loading, device, vector-store client)
 - `configs/config.yaml` — all settings (sources, licenses, chunking, embedding, vector store)

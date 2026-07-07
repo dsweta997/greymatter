@@ -20,10 +20,11 @@ import re
 import sys
 from pathlib import Path
 
-import yaml
-from tqdm import tqdm
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root -> import shared pkgs
 
-CONFIG_PATH = Path("configs/config.yaml")
+from tqdm import tqdm  # noqa: E402
+
+from common import CONFIG_PATH, load_config  # noqa: E402
 
 
 # --------------------------------------------------------------------------- #
@@ -63,8 +64,9 @@ def write_doc(raw_dir: Path, rec: dict, min_chars: int) -> bool:
         "license": rec["license"],
         "attribution": rec["attribution"],
         # source-specific fields collected here; core keys excluded
-        "metadata": {k: v for k, v in rec.items()
-                     if k not in _CORE_KEYS and k not in ("id", "metadata")},
+        "metadata": {
+            k: v for k, v in rec.items() if k not in _CORE_KEYS and k not in ("id", "metadata")
+        },
     }
     out = raw_dir / f"{doc['id']}.json"
     if out.exists():
@@ -81,9 +83,17 @@ _SECTION_RE = re.compile(r"^\s*(\d{1,2}\.\d{1,2})\s+(.+\S)\s*$")
 _CHAPTER_RE = re.compile(r"^\s*Chapter\s+\d+\s+(.+\S)\s*$")
 # Back-matter / non-teaching outline entries to skip even if leaf nodes.
 _SKIP_TITLES = {
-    "key terms", "chapter review", "review questions", "critical thinking questions",
-    "interactive link questions", "chapter objectives", "references", "index",
-    "glossary", "contents", "preface",
+    "key terms",
+    "chapter review",
+    "review questions",
+    "critical thinking questions",
+    "interactive link questions",
+    "chapter objectives",
+    "references",
+    "index",
+    "glossary",
+    "contents",
+    "preface",
 }
 
 
@@ -154,7 +164,7 @@ def _trim_leading_bleed(body: str, sec_title: str) -> str:
     """Cut any tail of the previous section that precedes this section's heading."""
     pat = re.compile(re.escape(sec_title[:40]).replace(r"\ ", r"\s+"))
     m = pat.search(body[:4000])
-    return body[m.start():] if m else body
+    return body[m.start() :] if m else body
 
 
 def _ingest_one_openstax(book: dict, cfg: dict, raw_dir: Path, min_chars: int) -> int:
@@ -162,8 +172,10 @@ def _ingest_one_openstax(book: dict, cfg: dict, raw_dir: Path, min_chars: int) -
         return 0
     pdf_path = Path(book["local_pdf"])
     if not pdf_path.exists():
-        print(f"[{book['name']}] PDF not found at {pdf_path}. "
-              f"Download the official PDF from openstax.org and drop it there. Skipping.")
+        print(
+            f"[{book['name']}] PDF not found at {pdf_path}. "
+            f"Download the official PDF from openstax.org and drop it there. Skipping."
+        )
         return 0
 
     from pypdf import PdfReader  # pinned >=6.13.0 in requirements
@@ -231,8 +243,10 @@ def ingest_medquad(cfg: dict, raw_dir: Path, min_chars: int) -> int:
     if not src.get("enabled"):
         return 0
     if not src.get("revision"):
-        print("[medquad] REFUSING to run without a pinned `revision` in config "
-              "(tamper-evidence + reproducibility). Set it and rerun.")
+        print(
+            "[medquad] REFUSING to run without a pinned `revision` in config "
+            "(tamper-evidence + reproducibility). Set it and rerun."
+        )
         return 0
 
     from datasets import load_dataset
@@ -240,8 +254,8 @@ def ingest_medquad(cfg: dict, raw_dir: Path, min_chars: int) -> int:
     ds = load_dataset(
         src["hf_repo"],
         split="train",
-        revision=src["revision"],       # pinned commit hash
-        trust_remote_code=False,        # HARD RULE
+        revision=src["revision"],  # pinned commit hash
+        trust_remote_code=False,  # HARD RULE
     )
 
     keep = [p.lower() for p in src["keep_question_prefixes"]]
@@ -299,8 +313,9 @@ def license_accepted(slug: str | None, cfg: dict) -> bool:
 def ingest_pmc(cfg: dict, raw_dir: Path, min_chars: int) -> int:
     import os
     import time
-    import requests
+
     import defusedxml.ElementTree as ET  # XXE / billion-laughs safe
+    import requests
 
     src = cfg["sources"]["pmc"]
     if not src.get("enabled"):
@@ -325,10 +340,15 @@ def ingest_pmc(cfg: dict, raw_dir: Path, min_chars: int) -> int:
     written = 0
     for query in src.get("queries", []):
         try:
-            ids = _get("esearch.fcgi", {
-                "db": "pmc", "term": f"{query} AND open access[filter]",
-                "retmax": src.get("retmax_per_query", 20), "retmode": "json",
-            }).json()["esearchresult"]["idlist"]
+            ids = _get(
+                "esearch.fcgi",
+                {
+                    "db": "pmc",
+                    "term": f"{query} AND open access[filter]",
+                    "retmax": src.get("retmax_per_query", 20),
+                    "retmode": "json",
+                },
+            ).json()["esearchresult"]["idlist"]
         except Exception as e:
             print(f"[pmc] esearch failed for {query!r}: {e}")
             continue
@@ -346,10 +366,16 @@ def ingest_pmc(cfg: dict, raw_dir: Path, min_chars: int) -> int:
             for el in root.iter():
                 tag = el.tag.lower()
                 if "license" in tag:
-                    blob = " ".join(filter(None, [
-                        el.get("{http://www.w3.org/1999/xlink}href"),
-                        el.get("href"), "".join(el.itertext()),
-                    ]))
+                    blob = " ".join(
+                        filter(
+                            None,
+                            [
+                                el.get("{http://www.w3.org/1999/xlink}href"),
+                                el.get("href"),
+                                "".join(el.itertext()),
+                            ],
+                        )
+                    )
                     slug = license_slug(blob)
                     if slug:
                         break
@@ -379,6 +405,7 @@ def ingest_pmc(cfg: dict, raw_dir: Path, min_chars: int) -> int:
 # --------------------------------------------------------------------------- #
 def ingest_libretexts(cfg: dict, raw_dir: Path, min_chars: int) -> int:
     import time
+
     import requests
 
     src = cfg["sources"]["libretexts"]
@@ -417,7 +444,7 @@ def main() -> int:
     if not CONFIG_PATH.exists():
         print(f"Missing {CONFIG_PATH}. Run from the repo root.")
         return 1
-    cfg = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    cfg = load_config()
 
     if cfg["security"].get("trust_remote_code") is not False:
         print("SECURITY: security.trust_remote_code must be false. Aborting.")
@@ -432,8 +459,7 @@ def main() -> int:
     total += ingest_medquad(cfg, raw_dir, min_chars)
     total += ingest_pmc(cfg, raw_dir, min_chars)
     total += ingest_libretexts(cfg, raw_dir, min_chars)
-    print(f"\nDone. {total} new docs in {raw_dir} "
-          f"({len(list(raw_dir.glob('*.json')))} total).")
+    print(f"\nDone. {total} new docs in {raw_dir} ({len(list(raw_dir.glob('*.json')))} total).")
     return 0
 
 

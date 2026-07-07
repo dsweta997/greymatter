@@ -1,0 +1,15 @@
+# Tooling config. Style is enforced by ruff, not argued about — see markdown/CODING_STANDARDS.md.
+#   ruff check .    # lint (unused imports, import order, style)
+#   ruff format .   # autoformat (line length 100)
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes (unused imports/vars), I: isort (import order)
+select = ["E", "W", "F", "I"]
+
+[tool.ruff.lint.isort]
+# Treat our packages as first-party so they sort into the local import group.
+known-first-party = ["common", "rag"]

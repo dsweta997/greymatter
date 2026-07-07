@@ -9,28 +9,29 @@ We index the corpus AS-IS (no re-chunking): OpenStax rows are already sentence-a
 ~1,000-char section chunks and MedQuAD rows are self-contained Q&A. A blind character
 splitter here would only destroy those boundaries.
 
-Run:  python data_pipeline/02_embed_and_index.py
+Run:  python data_pipeline/05_embed_and_index.py
 """
 
 from __future__ import annotations
 
+import sys
 import uuid
 from pathlib import Path
 
-import pandas as pd
-import torch
-import yaml
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, HnswConfigDiff, PointStruct, VectorParams
-from sentence_transformers import SentenceTransformer
-from tqdm import tqdm
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root -> import shared pkgs
 
-CONFIG_PATH = Path("configs/config.yaml")
+import pandas as pd  # noqa: E402  (after path bootstrap)
+from qdrant_client.models import Distance, HnswConfigDiff, PointStruct, VectorParams  # noqa: E402
+from sentence_transformers import SentenceTransformer  # noqa: E402
+from tqdm import tqdm  # noqa: E402
+
+from common import get_device, load_config, make_qdrant_client  # noqa: E402
+
 CORPUS = Path("corpus/corpus.parquet")
 
 
 def main() -> int:
-    cfg = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    cfg = load_config()
     emb, vs = cfg["embedding"], cfg["vector_store"]
 
     # 1. Load the corpus (documents to embed).
@@ -39,7 +40,7 @@ def main() -> int:
     print(f"loaded {len(df)} chunks from {CORPUS}")
 
     # 2. Load the bi-encoder. It maps each text -> one dense vector.
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = get_device()
     print(f"using device: {device}")
     model = SentenceTransformer(emb["model"], device=device)
     dim = model.get_sentence_embedding_dimension()
@@ -55,7 +56,7 @@ def main() -> int:
     )
 
     # 4. (Re)create the Qdrant collection sized to the model's output dim.
-    client = QdrantClient(path=vs["path"])
+    client = make_qdrant_client(vs)
     if client.collection_exists(vs["collection"]):
         client.delete_collection(vs["collection"])
 
@@ -95,7 +96,7 @@ def main() -> int:
     # 6. Upsert in batches (avoids one giant request).
     B = 256
     for s in tqdm(range(0, len(points), B), desc=f"[{vs['collection']}] upserting"):
-        client.upsert(collection_name=vs["collection"], points=points[s:s + B])
+        client.upsert(collection_name=vs["collection"], points=points[s : s + B])
     n = client.count(vs["collection"]).count
     print(f"indexed {n} vectors into collection '{vs['collection']}' at {vs['path']}/")
 
@@ -105,7 +106,7 @@ def main() -> int:
         "what is myocardial infarction",
         "how does the citric acid cycle produce ATP",
     ]
-    print(f"\nsmoke-test queries (top-5 per query):")
+    print("\nsmoke-test queries (top-5 per query):")
     for q in test_queries:
         qv = model.encode(emb["query_prefix"] + q, normalize_embeddings=emb["normalize"])
         hits = client.query_points(vs["collection"], query=qv.tolist(), limit=5).points

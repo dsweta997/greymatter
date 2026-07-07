@@ -9,19 +9,25 @@ The per-file JSON / JSONL stay as the human-editable, resumable working form; Pa
 the derived artifact (smaller, faster, columnar, matches how MedQuAD ships). The `metadata`
 bag is stored as a JSON string column so the schema stays stable across sources.
 
-Run:  python data_pipeline/export_parquet.py
+Run:  python data_pipeline/04_export_parquet.py
 """
 
 from __future__ import annotations
 
 import glob
 import json
+import sys
 from pathlib import Path
 
-from datasets import Dataset
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root -> import shared pkgs
 
-RAW = Path("corpus/raw")
-EVAL = Path("corpus/eval")
+from datasets import Dataset  # noqa: E402
+
+from common import load_config  # noqa: E402
+
+_CFG = load_config()
+RAW = Path(_CFG["paths"]["corpus_raw"])
+EVAL = Path(_CFG["paths"]["corpus_eval"])
 
 
 def export_corpus():
@@ -31,19 +37,21 @@ def export_corpus():
             d = json.loads(Path(f).read_text(encoding="utf-8"))
         except Exception:
             continue
-        rows.append({
-            "id": d["id"],
-            "title": d.get("title", ""),
-            "text": d["text"],
-            "source": d["source"],
-            "license": d["license"],
-            "attribution": d["attribution"],
-            # stringify the variable metadata bag -> stable columnar schema
-            "metadata": json.dumps(d.get("metadata", {}), ensure_ascii=False),
-        })
+        rows.append(
+            {
+                "id": d["id"],
+                "title": d.get("title", ""),
+                "text": d["text"],
+                "source": d["source"],
+                "license": d["license"],
+                "attribution": d["attribution"],
+                # stringify the variable metadata bag -> stable columnar schema
+                "metadata": json.dumps(d.get("metadata", {}), ensure_ascii=False),
+            }
+        )
     out = Path("corpus/corpus.parquet")
     Dataset.from_list(rows).to_parquet(str(out))
-    print(f"corpus:    {len(rows):6} docs -> {out}  ({out.stat().st_size/1e6:.1f} MB)")
+    print(f"corpus:    {len(rows):6} docs -> {out}  ({out.stat().st_size / 1e6:.1f} MB)")
 
 
 def export_jsonl(name, keys_defaults):
@@ -62,18 +70,29 @@ def export_jsonl(name, keys_defaults):
         rows.append(r)
     out = EVAL / f"{name}.parquet"
     Dataset.from_list(rows).to_parquet(str(out))
-    print(f"{name}: {len(rows):6} rows -> {out}  ({out.stat().st_size/1e3:.0f} KB)")
+    print(f"{name}: {len(rows):6} rows -> {out}  ({out.stat().st_size / 1e3:.0f} KB)")
 
 
 def main():
     export_corpus()
-    export_jsonl("eval_set", {
-        "relevant_doc_ids": [], "must_contain": [],
-        "type": "", "subject": "", "_needs_review": False,
-    })
-    export_jsonl("guardrail_set", {
-        "label": "", "boundary": False, "rationale": "",
-    })
+    export_jsonl(
+        "eval_set",
+        {
+            "relevant_doc_ids": [],
+            "must_contain": [],
+            "type": "",
+            "subject": "",
+            "_needs_review": False,
+        },
+    )
+    export_jsonl(
+        "guardrail_set",
+        {
+            "label": "",
+            "boundary": False,
+            "rationale": "",
+        },
+    )
 
 
 if __name__ == "__main__":
