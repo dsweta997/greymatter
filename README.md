@@ -27,7 +27,9 @@ Gray's Anatomy plates.
 - **Retriever**: `rag/retriever.py` — query → top-k chunks by cosine.
 - **Generator**: `rag/generator.py` — grounded, cited answers via any OpenAI-compatible endpoint (Ollama locally; `qwen2.5:7b`, Apache 2.0).
 - **Pipeline CLI**: `rag/pipeline.py` — prints retrieved context *and* answer, so failures are attributable to retrieval vs generation.
-- **Measured**: retrieval hit@5 = **0.656** (target ≥0.80); citation coverage = **0.75**.
+- **Measured**: retrieval hit@5 = **0.656** (target ≥0.80). Citation coverage is **0.76** — but
+  it scores the same whether or not retrieval found the right document, so it is a *formatting*
+  metric, not evidence of grounding. Faithfulness (criterion 2) is not yet measured.
 
 **Phase 3 next** — hybrid retrieval (BM25 + RRF) and cross-encoder reranking to close the
 hit@5 gap, then the Phase 3.5 safety classifier. Both baselines are already recorded, so
