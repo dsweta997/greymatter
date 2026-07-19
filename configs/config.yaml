@@ -28,7 +28,11 @@ vector_store:
 # --- Phase 2: generation ---
 llm:
   base_url: "http://localhost:11434/v1"  # Ollama's OpenAI-compatible endpoint
-  model: "qwen2.5:3b"                    # local, fits the 4060; swap for Groq later via base_url+model
+  # Apache 2.0 — chosen over qwen2.5:3b, which ships under the Qwen RESEARCH LICENSE.
+  # Same rule as the corpus: a license that permits reuse, verified not assumed. The 3B
+  # is fine for local experiments but must not be the default a published artifact runs on.
+  # Q4_K_M ~4.7GB, fits the 4060's 8.6GB alongside the embedding model.
+  model: "qwen2.5:7b"                    # swap for Groq later via base_url+model
   api_key_env: "LLM_API_KEY"             # Ollama ignores auth; set this env var for Groq/hosted
   temperature: 0.1                       # low -> stay grounded, minimal invention
   max_tokens: 700
