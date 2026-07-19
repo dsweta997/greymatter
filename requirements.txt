@@ -18,4 +18,8 @@ pandas>=2.0            # read corpus.parquet during indexing
 pyarrow>=14.0          # parquet engine for pandas
 langchain-text-splitters>=0.3.0  # available for future re-chunking; corpus currently indexed as-is
 
+# --- Generation (Phase 2) ---
+openai>=1.40.0         # OpenAI-compatible CLIENT only; talks to local Ollama by default.
+                       # Provider is a config change (llm.base_url + llm.model), not a code one.
+
 # NOTE: never pass trust_remote_code=True to any datasets/transformers call in this project.
