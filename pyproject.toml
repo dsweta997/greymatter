@@ -12,4 +12,4 @@ select = ["E", "W", "F", "I"]
 
 [tool.ruff.lint.isort]
 # Treat our packages as first-party so they sort into the local import group.
-known-first-party = ["common", "rag"]
+known-first-party = ["common", "guardrails", "rag"]

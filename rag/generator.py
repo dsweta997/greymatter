@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from openai import OpenAI
 
 from common import load_config
+from guardrails import CRISIS_RESPONSES, detect_crisis
 from rag.retriever import Hit, Retriever
 
 # The exact string the model must emit when it cannot answer. Defined once here and
@@ -52,6 +53,7 @@ class Answer:
     text: str
     hits: list[Hit]  # the context the model was given, for display + citation lookup
     gated: bool = False  # True -> abstained on weak retrieval, no LLM call was made
+    crisis: str | None = None  # 'SELF_HARM' | 'MEDICAL_EMERGENCY' -> fixed response, no LLM
 
 
 class Generator:
@@ -74,6 +76,15 @@ class Generator:
         return "\n\n".join(f"[{i}] ({h.source}) {h.title}\n{h.text}" for i, h in enumerate(hits, 1))
 
     def generate(self, query: str, hits: list[Hit]) -> Answer:
+        # CRISIS FIRST — before the score gate, and this ordering is load-bearing. Every
+        # crisis question in the guardrail set scores below min_score (median 0.648), so
+        # checking the gate first would route all 8 to a bare "I don't have enough context",
+        # signposting nobody. The response is a fixed human-written string: the model is never
+        # asked to improvise wording for someone disclosing suicidal intent.
+        crisis = detect_crisis(query)
+        if crisis:
+            return Answer(text=CRISIS_RESPONSES[crisis], hits=hits, crisis=crisis)
+
         # Hits arrive sorted by score, so hits[0] is the best match. Gating on it is both
         # cheaper and more reliable than asking the model to notice weak context: measured,
         # the model answers from memorised knowledge (Gleason, TNM, guidelines) regardless of

@@ -33,16 +33,24 @@ vector_store:
 # Applied in the generator, deliberately NOT in the retriever: hit@k must keep measuring raw
 # retrieval quality, and gating there would silently change that number.
 #
-# Calibrated on top-1 score, answerable (eval_set, n=90) vs unanswerable (abstention_set,
-# n=28): answerable min 0.716 / median 0.823; unanswerable max 0.752 / median 0.681.
-#   0.70 -> blocks 0% answerable, catches 71% unanswerable
-#   0.72 -> blocks 1% answerable, catches 89%   <- chosen
-#   0.75 -> blocks 2% answerable, catches 96%
-# Both sets are idealised (eval questions built FROM the corpus; abstention questions authored
-# to be absent), so real queries will separate less cleanly. Revalidate on live traffic before
-# treating this as tuned. Set to 0.0 to disable.
+# RECALIBRATED against the competing objective. The first calibration used eval_set as the
+# "answerable" side and picked 0.72 — but eval_set questions were CONSTRUCTED FROM the corpus,
+# so they score unusually high (min 0.716). Real hand-written student questions score lower
+# ("mechanism of action of NSAIDs" 0.711, "how does chemotherapy target dividing cells" 0.707),
+# and 0.72 gated both — pushing proposal criterion 4 (educational wrongly refused <=5%) from
+# 3% to 7%, i.e. from pass to fail. The idealised calibration was optimistic exactly as warned.
+#
+# Re-measured on guardrail EDUCATIONAL (hand-written, realistic) vs abstention_set:
+#   threshold   criterion 4        abstention caught by gate
+#     0.70      3%  PASS            71%   <- chosen
+#     0.71      5%  FAIL            82%
+#     0.72      7%  FAIL            89%
+#     0.75      16% FAIL            96%
+# The gate is not the only line of defence — the model abstains on some questions above the
+# threshold too — so trading gate coverage for criterion 4 is the right side of this tradeoff.
+# Still revalidate on live traffic. Set to 0.0 to disable.
 retrieval:
-  min_score: 0.72
+  min_score: 0.70
 
 # --- Phase 2: generation ---
 llm:

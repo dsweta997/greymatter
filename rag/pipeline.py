@@ -31,6 +31,15 @@ def main() -> int:
         answer = Generator(cfg).generate(query, hits)
 
     print(f"\nQUESTION: {query}\n")
+
+    # A crisis response comes from a fixed string, NOT from the corpus. Printing the retrieved
+    # chunks and a SOURCES list would imply the signposting was sourced from a narcolepsy
+    # article — actively misleading on the one response where being misread matters most.
+    if answer.crisis:
+        print(f"[crisis: {answer.crisis} — fixed response, no LLM call, corpus not used]\n")
+        print(answer.text)
+        return 0
+
     print("RETRIEVED CONTEXT (what the model saw):")
     for i, h in enumerate(hits, 1):
         print(f"  [{i}] {h.score:.3f} ({h.source}) {h.title[:55]}")
