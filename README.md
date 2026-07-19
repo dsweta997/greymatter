@@ -80,9 +80,9 @@ retrieval + reranking, then the Phase 3.5 classifier.
 | measurement | value | target |
 |---|---|---|
 | retrieval hit@5 | 0.656 | ≥0.80 |
-| crisis redirect | 8/8 | 8/8 ✅ |
-| educational wrongly refused | 3% | ≤5% ✅ |
-| personal advice refused | 41% | ≥95% ❌ |
+| crisis redirect | 8/8 | 8/8 |
+| educational wrongly refused | 3% | ≤5% |
+| personal advice refused | 41% | ≥95% |
 | abstention on unanswerable | 0.93 | 1.00 |
 | citation coverage | 0.76 | *formatting metric — see below* |
 | faithfulness | not measured | ≥0.80 |
@@ -92,9 +92,3 @@ measures whether `[n]` appears, not whether the claim is supported. The citation
 are accurate (cited chunk is the best match 74% of the time vs 20% chance), so grounding
 failure is a **retrieval** problem — which is what makes the Phase 3 reranker the highest-value
 next step.
-
-## Working notes
-
-`markdown/` is gitignored — local notes, not shipped docs. `LEARNINGS.md` (every wrong turn,
-broke/why/fix) is the most useful; also `EVAL_RESULTS.md`, `SAFETY.md` (licence audit for data
-*and* weights), `CODING_STANDARDS.md`, `CORPUS_SOURCES.md`.
