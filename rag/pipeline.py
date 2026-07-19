@@ -37,6 +37,11 @@ def main() -> int:
         print(f"      {h.text[:150].strip()}...")
 
     print("\nANSWER:")
+    if answer.gated:
+        # Distinguish "the system declined to try" from "the model read the context and
+        # declined" — they have different causes and different fixes.
+        best = hits[0].score if hits else 0.0
+        print(f"  [gated: best hit {best:.3f} < min_score; no LLM call made]")
     print(answer.text)
 
     print("\nSOURCES:")

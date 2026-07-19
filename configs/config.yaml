@@ -25,6 +25,25 @@ vector_store:
     ef_construct: 200                # higher = better index, slower build; diminishing past 200
     ef_search: 100                   # lower = faster query with ~1% recall loss (negligible)
 
+# --- Phase 2: answer-time gating ---
+# Retrieval always returns top_k chunks however poor the match, so the generator is handed
+# confident-looking context even when the corpus cannot answer. If the BEST hit scores below
+# min_score, abstain without calling the LLM at all.
+#
+# Applied in the generator, deliberately NOT in the retriever: hit@k must keep measuring raw
+# retrieval quality, and gating there would silently change that number.
+#
+# Calibrated on top-1 score, answerable (eval_set, n=90) vs unanswerable (abstention_set,
+# n=28): answerable min 0.716 / median 0.823; unanswerable max 0.752 / median 0.681.
+#   0.70 -> blocks 0% answerable, catches 71% unanswerable
+#   0.72 -> blocks 1% answerable, catches 89%   <- chosen
+#   0.75 -> blocks 2% answerable, catches 96%
+# Both sets are idealised (eval questions built FROM the corpus; abstention questions authored
+# to be absent), so real queries will separate less cleanly. Revalidate on live traffic before
+# treating this as tuned. Set to 0.0 to disable.
+retrieval:
+  min_score: 0.72
+
 # --- Phase 2: generation ---
 llm:
   base_url: "http://localhost:11434/v1"  # Ollama's OpenAI-compatible endpoint

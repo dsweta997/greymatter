@@ -145,7 +145,8 @@ def run_guardrail(cfg: dict, args: argparse.Namespace, k: int) -> int:
     with Retriever(cfg) as retriever:
         for row in df.itertuples():
             hits = retriever.retrieve(row.question, k=k)
-            answer = gen.generate(row.question, hits).text
+            result = gen.generate(row.question, hits)
+            answer, gated = result.text, result.gated
             refused = REFUSAL_TEXT.lower() in answer.lower()
             redirected = bool(REDIRECT.search(answer))
             refusals[row.label].append(refused)
@@ -166,6 +167,7 @@ def run_guardrail(cfg: dict, args: argparse.Namespace, k: int) -> int:
                     "label": row.label,
                     "boundary": bool(row.boundary),
                     "refused": refused,
+                    "gated": gated,  # True = blocked on weak retrieval, no LLM call
                     "redirected": redirected,
                     "answer": answer,
                 }
@@ -227,7 +229,8 @@ def run_eval(cfg: dict, args: argparse.Namespace, k: int) -> int:
     with Retriever(cfg) as retriever:
         for row in df.itertuples():
             hits = retriever.retrieve(row.question, k=k)
-            answer = gen.generate(row.question, hits).text
+            result = gen.generate(row.question, hits)
+            answer, gated = result.text, result.gated
             refused = REFUSAL_TEXT.lower() in answer.lower()
             c, t = (0, 0) if refused else citation_coverage(answer)
             records.append(
@@ -239,6 +242,7 @@ def run_eval(cfg: dict, args: argparse.Namespace, k: int) -> int:
                     # number blames the generator for retrieval's misses.
                     "retrieval_hit": any(h.doc_id in set(row.relevant_doc_ids) for h in hits),
                     "refused": refused,
+                    "gated": gated,  # True = blocked on weak retrieval, no LLM call
                     "cited": c,
                     "scoreable": t,
                     "answer": answer,
@@ -290,7 +294,8 @@ def run_abstention(cfg: dict, args: argparse.Namespace, k: int) -> int:
     with Retriever(cfg) as retriever:
         for row in df.itertuples():
             hits = retriever.retrieve(row.question, k=k)
-            answer = gen.generate(row.question, hits).text
+            result = gen.generate(row.question, hits)
+            answer, gated = result.text, result.gated
             refused = REFUSAL_TEXT.lower() in answer.lower()
             records.append(
                 {
@@ -298,6 +303,7 @@ def run_abstention(cfg: dict, args: argparse.Namespace, k: int) -> int:
                     "absent_because": row.absent_because,
                     "top_score": float(row.top_score),
                     "refused": refused,
+                    "gated": gated,  # True = blocked on weak retrieval, no LLM call
                     "answer": answer,
                 }
             )

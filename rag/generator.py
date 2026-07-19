@@ -51,6 +51,7 @@ SYSTEM_PROMPT = (
 class Answer:
     text: str
     hits: list[Hit]  # the context the model was given, for display + citation lookup
+    gated: bool = False  # True -> abstained on weak retrieval, no LLM call was made
 
 
 class Generator:
@@ -59,6 +60,10 @@ class Generator:
     def __init__(self, cfg: dict | None = None):
         cfg = cfg or load_config()
         self.llm = cfg["llm"]
+        # Abstain when the best hit is weaker than this. 0.0 disables. See config comment
+        # for the calibration; the gate lives here rather than in the retriever so hit@k
+        # keeps measuring raw retrieval.
+        self.min_score = cfg.get("retrieval", {}).get("min_score", 0.0)
         # Ollama ignores the key; a real value is only needed for hosted providers.
         api_key = os.environ.get(self.llm.get("api_key_env", ""), "") or "ollama"
         self.client = OpenAI(base_url=self.llm["base_url"], api_key=api_key)
@@ -69,6 +74,13 @@ class Generator:
         return "\n\n".join(f"[{i}] ({h.source}) {h.title}\n{h.text}" for i, h in enumerate(hits, 1))
 
     def generate(self, query: str, hits: list[Hit]) -> Answer:
+        # Hits arrive sorted by score, so hits[0] is the best match. Gating on it is both
+        # cheaper and more reliable than asking the model to notice weak context: measured,
+        # the model answers from memorised knowledge (Gleason, TNM, guidelines) regardless of
+        # what the context holds. Skipping the call entirely is the point.
+        if not hits or hits[0].score < self.min_score:
+            return Answer(text=REFUSAL_TEXT, hits=hits, gated=True)
+
         user = f"Context:\n{self._format_context(hits)}\n\nQuestion: {query}"
         resp = self.client.chat.completions.create(
             model=self.llm["model"],
