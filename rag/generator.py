@@ -22,11 +22,16 @@ from openai import OpenAI
 from common import load_config
 from rag.retriever import Hit, Retriever
 
+# The exact string the model must emit when it cannot answer. Defined once here and
+# interpolated into the prompt, because evaluation/run_generation_eval.py matches on it
+# to measure refusal rate — two copies would silently drift apart.
+REFUSAL_TEXT = "I don't have enough context to answer that."
+
 SYSTEM_PROMPT = (
     "You are a medical-education tutor for students. Answer using ONLY the numbered "
     "context passages below. "
-    "If the context does not contain the answer, reply exactly: \"I don't have enough "
-    'context to answer that." Do not use outside knowledge or invent facts. '
+    f'If the context does not contain the answer, reply exactly: "{REFUSAL_TEXT}" '
+    "Do not use outside knowledge or invent facts. "
     "This is educational content, not medical advice: do not diagnose, recommend "
     "treatment or drug doses, or interpret anyone's personal results.\n\n"
     # Small models drop citations entirely, or misread [n] as a section header and
